@@ -1,0 +1,92 @@
+_schema-version: "3.2"
+ID: ZDEMOApp
+version: 0.0.1
+modules:
+- name: ZDEMOApp-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: ZDEMOApp-destination-service
+    parameters:
+      content-target: true
+  - name: ZDEMOApp_html_repo_host
+    parameters:
+      service-key:
+        name: ZDEMOApp_html_repo_host-key
+  - name: uaa_ZDEMOApp
+    parameters:
+      service-key:
+        name: uaa_ZDEMOApp-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: zdemoappservice_ZDEMOApp_html_repo_host
+          ServiceInstanceName: ZDEMOApp-html5-app-host-service
+          ServiceKeyName: ZDEMOApp_html_repo_host-key
+          sap.cloud.service: zdemoappservice
+        - Authentication: OAuth2UserTokenExchange
+          Name: zdemoappservice_uaa_ZDEMOApp
+          ServiceInstanceName: ZDEMOApp-xsuaa-service
+          ServiceKeyName: uaa_ZDEMOApp-key
+          sap.cloud.service: zdemoappservice
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: ZDEMOApp-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: ZDEMOApp_html_repo_host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - ndkpcomproject1.zip
+      name: ndkpcomproject1
+      target-path: resources/
+- name: ndkpcomproject1
+  type: html5
+  path: project1
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: ZDEMOApp-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: ZDEMOApp-destination-service
+    service-plan: lite
+- name: ZDEMOApp_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: ZDEMOApp-html5-app-host-service
+    service-plan: app-host
+- name: uaa_ZDEMOApp
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: ZDEMOApp-xsuaa-service
+    service-plan: application
+parameters:
+  deploy_mode: html5-repo
